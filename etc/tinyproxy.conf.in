@@ -325,6 +325,11 @@ ConnectPort 563
 # If not set then no rewriting occurs.
 #
 #ReverseBaseURL "http://localhost:8888/"
-
+#
+#
+#Port auto responsder of fiddler to tinyproxy
+#auto responder will allow you to return files from your local disk instead of transmitting the request to remote server. 
+#It's pretty useful for web developers.
+AutoResponder   "/usr/local/etc/auto_responder.rules"
 
 

@@ -38,6 +38,7 @@
 #include "daemon.h"
 #include "heap.h"
 #include "filter.h"
+#include "autoresp.h"
 #include "child.h"
 #include "log.h"
 #include "reqs.h"
@@ -419,6 +420,8 @@ main (int argc, char **argv)
                 filter_init ();
 #endif /* FILTER_ENABLE */
 
+        if(config.autoresponder_rules)
+            autoresp_init ();
         /* Start listening on the selected port. */
         if (child_listening_sock (config.port) < 0) {
                 fprintf (stderr, "%s: Could not create listening socket.\n",

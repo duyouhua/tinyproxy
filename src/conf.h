@@ -92,6 +92,11 @@ struct config_s {
          * The HTML statistics page.
          */
         char *statpage;
+        
+        /**
+         * autoresponder rules definition file
+         */
+        char *autoresponder_rules;
 
         vector_t access_list;
 

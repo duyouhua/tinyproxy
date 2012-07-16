@@ -149,6 +149,7 @@ static HANDLE_FUNC (handle_reversepath);
 #endif
 static HANDLE_FUNC (handle_startservers);
 static HANDLE_FUNC (handle_statfile);
+static HANDLE_FUNC (handle_autoresponder);
 static HANDLE_FUNC (handle_stathost);
 static HANDLE_FUNC (handle_syslog);
 static HANDLE_FUNC (handle_timeout);
@@ -204,6 +205,7 @@ struct {
         STDCONF ("viaproxyname", STR, handle_viaproxyname),
         STDCONF ("defaulterrorfile", STR, handle_defaulterrorfile),
         STDCONF ("statfile", STR, handle_statfile),
+        STDCONF ("autoresponder", STR, handle_autoresponder),
         STDCONF ("stathost", STR, handle_stathost),
         STDCONF ("xtinyproxy",  BOOL, handle_xtinyproxy),
         /* boolean arguments */
@@ -306,6 +308,7 @@ static void free_config (struct config_s *conf)
         free_added_headers (conf->add_headers);
         safefree (conf->errorpage_undef);
         safefree (conf->statpage);
+        safefree (conf->autoresponder_rules);
         flush_access_list (conf->access_list);
         free_connect_ports_list (conf->connect_ports);
         hashmap_delete (conf->anonymous_map);
@@ -523,6 +526,10 @@ static void initialize_with_defaults (struct config_s *conf,
                 conf->statpage = safestrdup (defaults->statpage);
         }
 
+        if (defaults->autoresponder_rules) {
+                conf->autoresponder_rules = safestrdup (defaults->autoresponder_rules);
+        }
+
         /* vector_t access_list; */
         /* vector_t connect_ports; */
         /* hashmap_t anonymous_map; */
@@ -734,6 +741,11 @@ static HANDLE_FUNC (handle_defaulterrorfile)
 static HANDLE_FUNC (handle_statfile)
 {
         return set_string_arg (&conf->statpage, line, &match[2]);
+}
+
+static HANDLE_FUNC (handle_autoresponder)
+{
+        return set_string_arg (&conf->autoresponder_rules, line, &match[2]);
 }
 
 static HANDLE_FUNC (handle_stathost)
