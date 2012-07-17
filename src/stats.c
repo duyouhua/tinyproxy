@@ -40,6 +40,7 @@ struct stat_s {
         unsigned long int num_open;
         unsigned long int num_refused;
         unsigned long int num_denied;
+        unsigned long int num_autoresponder;
 };
 
 static struct stat_s *stats;
@@ -63,7 +64,7 @@ int
 showstats (struct conn_s *connptr)
 {
         char *message_buffer;
-        char opens[16], reqs[16], badconns[16], denied[16], refused[16];
+        char opens[16], reqs[16], badconns[16], denied[16], refused[16], autoresponders[16];
         FILE *statfile;
 
         snprintf (opens, sizeof (opens), "%lu", stats->num_open);
@@ -71,6 +72,7 @@ showstats (struct conn_s *connptr)
         snprintf (badconns, sizeof (badconns), "%lu", stats->num_badcons);
         snprintf (denied, sizeof (denied), "%lu", stats->num_denied);
         snprintf (refused, sizeof (refused), "%lu", stats->num_refused);
+        snprintf (autoresponders, sizeof (autoresponders), "%lu", stats->num_autoresponder);
 
         if (!config.statpage || (!(statfile = fopen (config.statpage, "r")))) {
                 message_buffer = (char *) safemalloc (MAXBUFFSIZE);
@@ -117,6 +119,7 @@ showstats (struct conn_s *connptr)
         add_error_variable (connptr, "badconns", badconns);
         add_error_variable (connptr, "deniedconns", denied);
         add_error_variable (connptr, "refusedconns", refused);
+        add_error_variable (connptr, "autoresponders", autoresponders);
         add_standard_vars (connptr);
         send_http_headers (connptr, 200, "Statistic requested");
         send_html_file (statfile, connptr);
@@ -147,6 +150,9 @@ int update_stats (status_t update_level)
                 break;
         case STAT_DENIED:
                 ++stats->num_denied;
+                break;
+        case STAT_AUTORESPONDER:
+                ++stats->num_autoresponder;
                 break;
         default:
                 return -1;

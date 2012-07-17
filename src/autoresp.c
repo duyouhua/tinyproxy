@@ -25,7 +25,7 @@
 #include "conf.h"
 
 #define LINE_BUFFER_LEN (512)
-#define RULES_PAT "^[[:space:]]*([^\"]+)[[:space:]]+\"([^\"]+)\"[[:space:]]*$"
+#define RULES_PAT "^[[:space:]]*([^\"]+)[[:space:]]+([^\"]+)[[:space:]]*$"
 static int err;
 
 struct autoresponder_rule_list {
@@ -161,7 +161,7 @@ char *map_to_local_file (const char *url)
         int result;
 
         if (!rule_list || !already_init)
-                goto COMMON_EXIT;
+                return 0;
 
         for (p = rule_list; p; p = p->next) {
                 result =
@@ -169,11 +169,7 @@ char *map_to_local_file (const char *url)
 
                 if (result == 0) {
                     return p->local_file_pat;
-                }else{
-                    return 0;
                 }
         }
-
-COMMON_EXIT:
-                return 0;
+        return 0;
 }

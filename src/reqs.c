@@ -48,6 +48,7 @@
 #include "upstream.h"
 #include "connect-ports.h"
 #include "conf.h"
+#include "autoresp.h"
 
 /*
  * Maximum length of a HTTP line
@@ -498,6 +499,13 @@ BAD_REQUEST_ERROR:
                 goto fail;
         }
 
+        if(config.autoresponder_rules){
+            char *local_file = map_to_local_file(url);
+            if(!local_file){
+                connptr->map_to_local_file = local_file;
+                goto fail;
+            }
+        }
         safefree (url);
 
         return request;
@@ -1459,6 +1467,8 @@ void handle_connection (int fd)
         if (!request) {
                 if (!connptr->show_stats) {
                         update_stats (STAT_BADCONN);
+                }else if(!connptr->map_to_local_file){
+                    update_stats(STAT_AUTORESPONDER);
                 }
                 goto fail;
         }
@@ -1539,6 +1549,8 @@ fail:
                 send_http_error_message (connptr);
         } else if (connptr->show_stats) {
                 showstats (connptr);
+        } else if(connptr->map_to_local_file){
+            send_local_file(connptr);
         }
 
 done:

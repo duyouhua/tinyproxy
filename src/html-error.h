@@ -34,5 +34,6 @@ extern int send_html_file (FILE * infile, struct conn_s *connptr);
 extern int send_http_headers (struct conn_s *connptr, int code,
                               const char *message);
 extern int add_standard_vars (struct conn_s *connptr);
+extern int send_local_file (struct conn_s *connptr);
 
 #endif /* !TINYPROXY_HTML_ERROR_H */

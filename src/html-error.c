@@ -175,6 +175,39 @@ send_html_file (FILE *infile, struct conn_s *connptr)
         return r;
 }
 
+/*
+ * Display the local file to client
+ */
+int send_local_file(struct conn_s *connptr)
+{
+        FILE *localfile;
+
+        const char *headers =
+            "HTTP/1.0 %d %s\r\n"
+            "Server: %s/%s\r\n"
+            "Content-Type: text/html\r\n" "Connection: close\r\n" "\r\n";
+
+        char *inbuf;
+        int r = 0;
+        inbuf = (char *) safemalloc (4096);
+
+        if (!config.autoresponder_rules || (!(localfile = fopen (connptr->map_to_local_file, "r")))) {
+                return 0;
+        }
+
+
+        write_message (connptr->client_fd, headers,200, "auto responder", PACKAGE, VERSION);
+
+        while (fgets (inbuf, 4096, localfile) != NULL) {
+            r = write_message (connptr->client_fd, "%s", inbuf);
+            if (r)
+                    break;
+        }
+        safefree (inbuf);
+        fclose (localfile);
+        return r;
+}
+
 int send_http_headers (struct conn_s *connptr, int code, const char *message)
 {
         const char *headers =

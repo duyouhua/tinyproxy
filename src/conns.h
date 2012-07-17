@@ -86,6 +86,9 @@ struct conn_s {
          * Pointer to upstream proxy.
          */
         struct upstream *upstream_proxy;
+
+        /*store the local files that is corresponding to incomming request*/
+        char *map_to_local_file;
 };
 
 /*
