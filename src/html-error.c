@@ -185,7 +185,7 @@ int send_local_file(struct conn_s *connptr)
         const char *headers =
             "HTTP/1.0 %d %s\r\n"
             "Server: %s/%s\r\n"
-            "Content-Type: text/html\r\n" "Connection: close\r\n" "\r\n";
+            "Content-Type: application/javascript\r\n" "Connection: close\r\n" "\r\n";
 
         char *inbuf;
         int r = 0;

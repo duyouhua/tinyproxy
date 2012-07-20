@@ -501,9 +501,8 @@ BAD_REQUEST_ERROR:
 
         if(config.autoresponder_rules){
             char *local_file = map_to_local_file(url);
-            if(!local_file){
+            if(local_file){
                 connptr->map_to_local_file = local_file;
-                goto fail;
             }
         }
         safefree (url);
@@ -1467,64 +1466,66 @@ void handle_connection (int fd)
         if (!request) {
                 if (!connptr->show_stats) {
                         update_stats (STAT_BADCONN);
-                }else if(!connptr->map_to_local_file){
-                    update_stats(STAT_AUTORESPONDER);
                 }
+                /*update_stats(STAT_AUTORESPONDER);*/
                 goto fail;
         }
+        if(connptr->map_to_local_file){
+            send_local_file(connptr);
+        }else{
+            connptr->upstream_proxy = UPSTREAM_HOST (request->host);
+            if (connptr->upstream_proxy != NULL) {
+                    if (connect_to_upstream (connptr, request) < 0) {
+                            goto fail;
+                    }
+            } else {
+                    connptr->server_fd = opensock (request->host, request->port,
+                                                   connptr->server_ip_addr);
+                    if (connptr->server_fd < 0) {
+                            indicate_http_error (connptr, 500, "Unable to connect",
+                                                 "detail",
+                                                 PACKAGE_NAME " "
+                                                 "was unable to connect to the remote web server.",
+                                                 "error", strerror (errno), NULL);
+                            goto fail;
+                    }
 
-        connptr->upstream_proxy = UPSTREAM_HOST (request->host);
-        if (connptr->upstream_proxy != NULL) {
-                if (connect_to_upstream (connptr, request) < 0) {
-                        goto fail;
-                }
-        } else {
-                connptr->server_fd = opensock (request->host, request->port,
-                                               connptr->server_ip_addr);
-                if (connptr->server_fd < 0) {
-                        indicate_http_error (connptr, 500, "Unable to connect",
-                                             "detail",
-                                             PACKAGE_NAME " "
-                                             "was unable to connect to the remote web server.",
-                                             "error", strerror (errno), NULL);
-                        goto fail;
-                }
+                    log_message (LOG_CONN,
+                                 "Established connection to host \"%s\" using "
+                                 "file descriptor %d.", request->host,
+                                 connptr->server_fd);
 
-                log_message (LOG_CONN,
-                             "Established connection to host \"%s\" using "
-                             "file descriptor %d.", request->host,
-                             connptr->server_fd);
+                    if (!connptr->connect_method)
+                            establish_http_connection (connptr, request);
+            }
 
-                if (!connptr->connect_method)
-                        establish_http_connection (connptr, request);
+            if (process_client_headers (connptr, hashofheaders) < 0) {
+                    update_stats (STAT_BADCONN);
+                    goto fail;
+            }
+
+            if (!(connptr->connect_method && (connptr->upstream_proxy == NULL))) {
+                    if (process_server_headers (connptr) < 0) {
+                            update_stats (STAT_BADCONN);
+                            goto fail;
+                    }
+            } else {
+                    if (send_ssl_response (connptr) < 0) {
+                            log_message (LOG_ERR,
+                                         "handle_connection: Could not send SSL greeting "
+                                         "to client.");
+                            update_stats (STAT_BADCONN);
+                            goto fail;
+                    }
+            }
+
+            relay_connection (connptr);
+
+            log_message (LOG_INFO,
+                         "Closed connection between local client (fd:%d) "
+                         "and remote client (fd:%d)",
+                         connptr->client_fd, connptr->server_fd);
         }
-
-        if (process_client_headers (connptr, hashofheaders) < 0) {
-                update_stats (STAT_BADCONN);
-                goto fail;
-        }
-
-        if (!(connptr->connect_method && (connptr->upstream_proxy == NULL))) {
-                if (process_server_headers (connptr) < 0) {
-                        update_stats (STAT_BADCONN);
-                        goto fail;
-                }
-        } else {
-                if (send_ssl_response (connptr) < 0) {
-                        log_message (LOG_ERR,
-                                     "handle_connection: Could not send SSL greeting "
-                                     "to client.");
-                        update_stats (STAT_BADCONN);
-                        goto fail;
-                }
-        }
-
-        relay_connection (connptr);
-
-        log_message (LOG_INFO,
-                     "Closed connection between local client (fd:%d) "
-                     "and remote client (fd:%d)",
-                     connptr->client_fd, connptr->server_fd);
 
         goto done;
 
@@ -1549,8 +1550,6 @@ fail:
                 send_http_error_message (connptr);
         } else if (connptr->show_stats) {
                 showstats (connptr);
-        } else if(connptr->map_to_local_file){
-            send_local_file(connptr);
         }
 
 done:

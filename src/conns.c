@@ -70,6 +70,7 @@ struct conn_s *initialize_conn (int client_fd, const char *ipaddr,
 
         connptr->connect_method = FALSE;
         connptr->show_stats = FALSE;
+        connptr->map_to_local_file = NULL;
 
         connptr->protocol.major = connptr->protocol.minor = 0;
 

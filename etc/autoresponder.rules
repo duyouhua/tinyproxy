@@ -1,0 +1,7 @@
+#line beginning with # are comments and will be ignored
+#autoresponder rules follow PATTERN SPACE PATTERN format. the left pattern specifies the request URL that you want to auto response and right pattern specify a file from your local disk to return. 
+#TODO currently the right pattern can only be a fully qualified file path not supporting file globbing, wild card, regular expression etc, which will be 
+#taken into account in coming versions. 
+http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js     /local/decompressed/jquery/js
+#or 
+/ajax/libs/jquery/1.4.2/jquery.min.js     /local/decompressed/jquery/js
