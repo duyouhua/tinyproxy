@@ -25,6 +25,7 @@
 #include "child.h"
 #include "daemon.h"
 #include "filter.h"
+#include "autoresp.h"
 #include "heap.h"
 #include "log.h"
 #include "reqs.h"
@@ -442,6 +443,7 @@ void child_main_loop (void)
 #ifdef FILTER_ENABLE
                         filter_reload ();
 #endif /* FILTER_ENABLE */
+                        autoresp_reload();
 
                         /* propagate filter reload to all children */
                         child_kill_children (SIGHUP);

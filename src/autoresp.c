@@ -35,7 +35,7 @@ struct autoresponder_rule_list {
         char *local_file_pat;
 };
 
-static struct autoresponder_rule_list *rule_list = NULL;
+static struct autoresponder_rule_list *rule_head = NULL;
 static int already_init = 0;
 static regex_t rule_pt;
 
@@ -59,9 +59,11 @@ void autoresp_init (void)
 {
         FILE *fd;
         char buf[LINE_BUFFER_LEN];
+        struct autoresponder_rule_list *p = NULL;
+        regmatch_t match[3];
 
         log_message (LOG_INFO, "init auto responder rule list");
-        if (rule_list || already_init) {
+        if (rule_head || already_init) {
             log_message (LOG_INFO, "autoresponder rule list was already active");
             return;
         }
@@ -80,7 +82,24 @@ void autoresp_init (void)
         }
 
         while (fgets (buf, LINE_BUFFER_LEN, fd)) {
-            check_match(buf);
+            err = regexec(& rule_pt, buf, 3, match, 0);
+            if (!err){
+                if (!p) /* head of list */
+                    rule_head = p = (struct autoresponder_rule_list *) safecalloc (1, sizeof (struct autoresponder_rule_list));
+                else {  /* next entry */
+                    p->next = (struct autoresponder_rule_list *) safecalloc (1, sizeof (struct autoresponder_rule_list));
+                    p = p->next;
+                }
+                p->path_pat = sub_string (buf,match[1]);
+                p->local_file_pat = sub_string (buf,match[2]);
+                p->regx = (regex_t *) safemalloc (sizeof (regex_t));
+                log_message (LOG_INFO, "path pattern %s corresponds to %s", p->path_pat, p->local_file_pat);
+                err = regcomp(p->regx, p->path_pat, REG_EXTENDED | REG_ICASE | REG_NEWLINE);
+                if (err != 0) {
+                    fprintf (stderr, "bad regex in %s\n", p->path_pat);
+                    exit (EX_DATAERR);
+                }
+            }
         }
         if (ferror (fd)) {
                 perror ("fgets");
@@ -91,36 +110,6 @@ void autoresp_init (void)
         already_init = 1;
 }
 
-int check_match (const char *line)
-{
-        struct autoresponder_rule_list *p;
-        regmatch_t match[3];
-        p = NULL;
-        if (!regexec (& rule_pt, line, 3, match, 0)){
-            if (!p) /* head of list */
-                    rule_list = p =
-                        (struct autoresponder_rule_list *)
-                        safecalloc (1, sizeof (struct autoresponder_rule_list));
-            else {  /* next entry */
-                    p->next =
-                        (struct autoresponder_rule_list *)
-                        safecalloc (1, sizeof (struct autoresponder_rule_list));
-                    p = p->next;
-            }
-            p->path_pat = sub_string (line,match[1]);
-            p->local_file_pat = sub_string (line,match[2]);
-            p->regx = (regex_t *) safemalloc (sizeof (regex_t));
-            log_message (LOG_INFO, "path pattern %s corresponds to %s", p->path_pat, p->local_file_pat);
-            err = regcomp(p->regx, p->path_pat, REG_EXTENDED | REG_ICASE | REG_NEWLINE);
-            if (err != 0) {
-                    fprintf (stderr, "bad regex in %s\n", p->path_pat);
-                    exit (EX_DATAERR);
-            }
-            return 0;
-        }
-        return -1;
-}
-
 
 /* unlink the list */
 void autoresp_destroy (void)
@@ -128,7 +117,7 @@ void autoresp_destroy (void)
         struct autoresponder_rule_list *p, *q;
 
         if (already_init) {
-                for (p = q = rule_list; p; p = q) {
+                for (p = q = rule_head; p; p = q) {
                         regfree (p->regx);
                         safefree (p->regx);
                         safefree (p->path_pat);
@@ -136,7 +125,7 @@ void autoresp_destroy (void)
                         q = p->next;
                         safefree (p);
                 }
-                rule_list = NULL;
+                rule_head = NULL;
                 already_init = 0;
         }
 }
@@ -159,10 +148,10 @@ char *map_to_local_file (const char *url)
 {
         struct autoresponder_rule_list *p;
         int result;
-        if (!rule_list || !already_init)
+        if (!rule_head || !already_init)
                 return 0;
 
-        for (p = rule_list; p; p = p->next) {
+        for (p = rule_head; p; p = p->next) {
                 log_message (LOG_INFO, "match pattern[%s] in %s\n", p->path_pat, url);
                 result = regexec (p->regx, url, (size_t) 0, (regmatch_t *) 0, 0);
                 if (result == 0) {

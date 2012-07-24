@@ -25,5 +25,4 @@ extern void autoresp_init (void);
 extern void autoresp_destroy (void);
 extern void autoresp_reload (void);
 extern char *map_to_local_file (const char *url);
-extern int check_match(const char *line);
 #endif
